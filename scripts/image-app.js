@@ -5,6 +5,7 @@
   imageLoader.addEventListener('change', handleImage, false);
   var canvas = document.querySelector('#image');
   var ctx = canvas.getContext('2d');
+  var imageWorker = new Worker('scripts/worker.js');
 
   function handleImage(e){
     var reader = new FileReader();
@@ -34,7 +35,7 @@
     };
   }
 
-  function manipulateImage(type) {
+  /*function manipulateImage(type) {
     var a, b, g, i, imageData, j, length, pixel, r, ref;
     imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
@@ -57,7 +58,29 @@
     }
     toggleButtonsAbledness();
     return ctx.putImageData(imageData, 0, 0);
+  }; */
+
+function manipulateImage(type) {
+  var a, b, g, i, imageData, j, length, pixel, r, ref;
+  imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  toggleButtonsAbledness();
+  imageWorker.postMessage({'imageData': imageData, 'type': type});
+
+  imageWorker.onmessage = function(e) {
+    toggleButtonsAbledness();
+    var image = e.data;
+    if (image) return ctx.putImageData(e.data, 0, 0);
+    console.log("No manipulated image returned.")
+  }
+
+  imageWorker.onerror = function(error) {
+    function WorkerException(message) {
+      this.name = "WorkerException";
+      this.message = message;
+    };
+    throw new WorkerException('Worker error.');
   };
+};
 
   function revertImage() {
     return ctx.putImageData(original, 0, 0);
